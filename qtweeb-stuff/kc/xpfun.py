@@ -92,3 +92,4 @@ curried_get_xp = {
 
     # 300x^2 - 8300x
     2: CurriedFunction(_get_xp_help, 300, -8300),
+}
