@@ -31,11 +31,23 @@ def lvl_state(lvl):
     return 5
 
 
+def _get_level_quads(lmul, lmod, radmod, xpdiv, xp):
+    return (radmod + math.sqrt(abs(lmod + (lmul * xp)))) / xpdiv
+
+
+def _get_level_piece(piece, start, end, xp):
+    amt = c_gl[piece](xp)
+    return (amt * c_hfx[start](xp)) - (amt * c_hfx[end](xp))
+
+
 def get_level(xp):
-    if xp < LEVEL_51:
-        return (1 + math.sqrt(1 + (4 * (xp / 50.0)))) / 2
-    else:
-        return (51 + math.sqrt((51 * 51) + (4 * ((xp - LEVEL_51) / 100.0)))) / 2
+    return (
+        _get_level_piece(0, 0, 1, xp)
+        + _get_level_piece(1, 1, 2, xp)
+        + _get_level_piece(2, 2, 3, xp)
+        + _get_level_piece(3, 3, 4, xp)
+        + _get_level_piece(4, 4, 5, xp)
+    )
 
 
 def _xp_diff_start(lvl):
@@ -103,7 +115,7 @@ def bad_result(lvl):
     return -1
 
 
-def heaviside(lmod, lvl):
+def unitstep(lmod, lvl):
     if lvl - lmod <= 0:
         return 0
     return 1
@@ -111,13 +123,23 @@ def heaviside(lmod, lvl):
 
 ### setup curried functions
 c_hf = {
-    0: CurriedFunction(heaviside, 0),
-    1: CurriedFunction(heaviside, 51),
-    2: CurriedFunction(heaviside, 61),
-    3: CurriedFunction(heaviside, 71),
-    4: CurriedFunction(heaviside, 81),
-    5: CurriedFunction(heaviside, 91)
+    0: CurriedFunction(unitstep, 0),
+    1: CurriedFunction(unitstep, 51),
+    2: CurriedFunction(unitstep, 61),
+    3: CurriedFunction(unitstep, 71),
+    4: CurriedFunction(unitstep, 81),
+    5: CurriedFunction(unitstep, 91),
 }
+
+c_hfx = {
+    0: CurriedFunction(unitstep, 0),
+    1: CurriedFunction(unitstep, 127500),
+    2: CurriedFunction(unitstep, 188500),
+    3: CurriedFunction(unitstep, 275000),
+    4: CurriedFunction(unitstep, 397000),
+    5: CurriedFunction(unitstep, 564500),
+}
+
 
 c_xd = {
     # 100x  100
@@ -189,7 +211,7 @@ c_gx = {
 
     # previous + 400 (x - 46)
     # previous = 275000
-    # 200(x^2 - 91x + 2795
+    # 200(x^2 - 91x + 2795)
     3: CurriedFunction(_get_xp_quad, 200, 1, -91, 2795),
     # 500n^2 - 56500n
     # 500x^2 - 14500x
@@ -201,7 +223,7 @@ c_gx = {
 
     # previous + 500 (x - 53)
     # previous = 397000
-    # 250(x^2 - 105x + 3532
+    # 250(x^2 - 105x + 3532)
     4: CurriedFunction(_get_xp_quad, 250, 1, -105, 3532),
     # 750n^2 - 96750n
     # 750x^2 - 24750x
@@ -211,4 +233,21 @@ c_gx = {
     # 750x(x - 291)
 #    4: CurriedFunction(_get_xp_help, 750, 1, -291, 0)
     
+}
+
+c_gl = {
+    # (5 + sqrt( 25 + 2y )) / 10
+    0: CurriedFunction(_get_level_quads, 2, 25, 5, 10),
+
+    # (255 + sqrt( y - 62475)) / 10
+    1: CurriedFunction(_get_level_quads, 1, -62475, 255, 10),
+
+    # (1115 + sqrt( 6y - 619775)) / 30
+    2: CurriedFunction(_get_level_quads, 6, -619775, 1115, 30),
+
+    # (455 + sqrt( y/2 - 72475)) / 10
+    3: CurriedFunction(_get_level_quads, 1/2.0, -72475, 455, 10),
+
+    # (525 + sqrt( 2y/5 - 77575)) / 10
+    4: CurriedFunction(_get_level_quads, 2/5.0, -77575, 525, 10),
 }
