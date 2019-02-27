@@ -177,8 +177,8 @@ c_gx = {
 
     # previous + 100 (3x - 133)
     # previous = 188500
-    # 50(3x - 145)(n -26)
-    2: CurriedFunction(_get_xp_quadf, 50, 3, -145, 1, -26),
+    # 50(3x^2 - 223x + 6210)
+    2: CurriedFunction(_get_xp_quad, 50, 3, -223, 6210),
     # 300n^2 - 28300n
     # 300x^2 - 8300x
     # 100x(3x - 83)
@@ -189,8 +189,8 @@ c_gx = {
 
     # previous + 400 (x - 46)
     # previous = 275000
-    # 200(x^2 - 91x + 1375)
-    3: CurriedFunction(_get_xp_quad, 200, 1, -91, 1375),
+    # 200(x^2 - 91x + 2795
+    3: CurriedFunction(_get_xp_quad, 200, 1, -91, 2795),
     # 500n^2 - 56500n
     # 500x^2 - 14500x
     # 500x(x - 29)
@@ -201,8 +201,8 @@ c_gx = {
 
     # previous + 500 (x - 53)
     # previous = 397000
-    # 250(x^2 - 105x + 1588)
-    4: CurriedFunction(_get_xp_quad, 250, 1, -105, 1588),
+    # 250(x^2 - 105x + 3532
+    4: CurriedFunction(_get_xp_quad, 250, 1, -105, 3532),
     # 750n^2 - 96750n
     # 750x^2 - 24750x
     # 750x(x - 33)
