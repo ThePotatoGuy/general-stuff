@@ -1,7 +1,7 @@
-LEVEL_51 = 127500
-LEVEL_100 = 1000000
-
 import math
+
+CUBE = (1.0 / 3.0)
+# cube root
 
 class CurriedFunction(object):
 
@@ -35,6 +35,17 @@ def _quadform(radmod, amul, lmul, lmod, xpdiv, xp):
     return (radmod + math.sqrt(abs(amul * (lmod + (lmul * xp))))) / xpdiv
 
 
+def _cubeform_s(ymul, ydiv, xmod, aamul, amul, amod, pamul, z1mul, z1div, 
+        z1cmul, z1cdiv, z2mul, z2div, z2cmul, z2cdiv, kcon, xp):
+    a_var = ((ymul * xp) / ydiv) + xmod
+    z_var = math.sqrt(abs(aamul * ( (amul * a_var * a_var) + amod))) + (pamul * a_var)
+    return (
+        (z1mul / z1div) * ( ( (z_var * z1cmul) / z1cdiv) ** CUBE)
+        + (z2mul / z2div) * ( ( z2cmul / (z_var * z2cdiv)) ** CUBE)
+        + kcon
+    )
+
+
 def _get_level_piece(piece, start, end, xp):
     amt = c_gl[piece](xp)
     return (amt * c_hfx[start](xp)) - (amt * c_hfx[end](xp))
@@ -47,6 +58,7 @@ def get_level(xp):
         + _get_level_piece(2, 2, 3, xp)
         + _get_level_piece(3, 3, 4, xp)
         + _get_level_piece(4, 4, 5, xp)
+        + _get_level_piece(5, 5, 6, xp)
     )
 
 
@@ -158,6 +170,7 @@ c_hfx = {
     3: CurriedFunction(unitstep, 275000),
     4: CurriedFunction(unitstep, 397000),
     5: CurriedFunction(unitstep, 564500),
+    6: CurriedFunction(unitstep, 631500),
 }
 
 
@@ -247,7 +260,9 @@ c_gx = {
     #   with sub: (500/3)(x - 91)(x^2 - 179x + 8124)
     #
     # Then add 564500 and simplify:
-    # 3: (1/3)(500n^3 + 1500n + 5800n + 1693500)
+    # 3: (1/3)(500n^3 + 1500n + 58000n + 1693500)
+    #   (500/3)(n^3 + 3n^2 + 116n + 3387)
+    #   (500/3)(x^3 - 270x^2 + 24413x - 735897)
     #
     # 500/3 ( (x - 90)^3 + 113(x - 90) + 3273)
     5: CurriedFunction(_cubicsimp, 500, 3, 1, 113, -90, 3273),
@@ -280,6 +295,22 @@ c_gx = {
     
 }
 
+# current level based on xp.
+# to get this, inverse the get_xp functions.
+# This is very hard to do.
+# For quadratics, its a matter of using substitution:
+#   1. move the constant and factors over to the other side (where y is)
+#   2. substitute that with Z (a variable)
+#   3. move that Z over to the other side again, and use quadratic formula
+#   4. Replace Z in the quadratic formula with the substitution
+#   5. simplify
+#
+# For cubics, use the "cubic formula" to 
+# help solve. By default, wolfram alpha puts cubic functions in
+# the cubic formula -> x^3 + Ax = B
+# NOTE: actually, just using wolfram to get inverse. Then we take that and
+#   simplify down to a standard set that limits the number of weird math 
+#   equations
 c_gl = {
     # (5 + sqrt( 2y + 25 )) / 10
     0: CurriedFunction(_quadform, 5, 1, 2, 25, 10),
@@ -297,4 +328,19 @@ c_gl = {
     # (525 + sqrt( 2y/5 - 77575)) / 10
     # (2625 + sqrt( 5 (2y - 387875) )) / 50
     4: CurriedFunction(_quadform, 2625, 5, 2, -387875, 50),
+
+    # NOTE: this is a cubic root
+    # x = (3 * y) / 500
+    # a = x - 3273
+    # z = sqrt(3 * (27a^2 + 5771588)) + 9a
+    # (z/18)^(1/3) - 113 ( 2 / (3z) )^(1/3) + 90
+    5: CurriedFunction(_cubeform_s, 3, 500.0, -3273, 3, 27, 5771588, 9, 1, 1, 
+        1, 18, -113, 1, 2, 3, 90
+    ),
+
+    # test
+
+    # NOTE: this is a cubic root
+
+    # last
 }
