@@ -31,8 +31,8 @@ def lvl_state(lvl):
     return 5
 
 
-def _quadform(lmul, lmod, radmod, xpdiv, xp):
-    return (radmod + math.sqrt(abs(lmod + (lmul * xp)))) / xpdiv
+def _quadform(radmod, amul, lmul, lmod, xpdiv, xp):
+    return (radmod + math.sqrt(abs(amul * (lmod + (lmul * xp))))) / xpdiv
 
 
 def _get_level_piece(piece, start, end, xp):
@@ -94,6 +94,10 @@ def _quadfact(amul, m1, k1, m2, k2, lvl):
 def _quadfactK(amul, m1, k1, m2, k2, bigK, lvl):
     return bigK + _quadfact(amul, m1, k1, m2, k2, lvl)
 
+def _cubicsimp(amul, bmul, cxmul, lxmul, lmod, kcon, lvl):
+    amt = lvl + lmod
+    return (amul * ( (cxmul * amt * amt * amt) + (lxmul * amt) + kcon ) ) / bmul
+
 def _get_xp_help(amul, mmul, bmod, lmod, prev, lvl):
     return (amul * lvl * ( (mmul * (lvl + lmod)) + bmod)) + get_xp
 #    return amul * lvl * ( (mmul * (lvl + lmod)) + bmod)
@@ -111,6 +115,10 @@ def get_xp(lvl):
         + _get_xp_piece(2, 2, 3, lvl)
         + _get_xp_piece(3, 3, 4, lvl)
         + _get_xp_piece(4, 4, 5, lvl)
+        + _get_xp_piece(5, 5, 6, lvl)
+        + _get_xp_piece(6, 6, 7, lvl)
+        + _get_xp_piece(7, 7, 8, lvl)
+        + _get_xp_piece(8, 8, 9, lvl)
 
     )
 
@@ -153,6 +161,10 @@ c_hfx = {
 }
 
 
+# difference in xp for each level 
+# AKA: how much xp needed to gain to reach next level
+# This is our base function, since it can be easily modeled as linaer or
+# quadratic
 c_xd = {
     # 100x  100
     # 100 (x - 1)
@@ -174,6 +186,7 @@ c_xd = {
     # 500 (x - 53)
     4: CurriedFunction(_ymxb, 500, 1, -53, 0),
 
+    # 1000(x - 91) -- diff formula
     # 19000 + 500(x - 90)(x - 91)
     5: CurriedFunction(_quadfactK, 500, 1, -90, 1, -91, 19000),
 
@@ -182,6 +195,7 @@ c_xd = {
     # NOTE: only for 1 value
     6: CurriedFunction(_constant, 30000),
 
+    # 10000(x - 95) -- diff formula
     # 30000 + 5000(x - 94)(x - 95)
     7: CurriedFunction(_quadfactK, 5000, 1, -94, 1, -95, 30000),
 
@@ -192,6 +206,10 @@ c_xd = {
 
 }
 
+# total xp gained to reach a certain level
+# this is basically how much xp you should have at minmum for a level
+# To get this, do a summation on the xp diff formulas using the
+# partial sum / natural numbers sum function
 c_gx = {
     # 50x^2 - 50x
     # (50x)(x - 1)
@@ -217,26 +235,66 @@ c_gx = {
     # 250(x^2 - 105x + 3532)
     4: CurriedFunction(_quad, 250, 1, -105, 3532),
 
-    # 564500 + 19000 + 500(x - 90)(x - 91)
+    # 564500 + (double summation of diff formula using substitution)
+    # NOTE: we are starting with the growth of diff instead of diff itself,
+    #   which is why we need double summation
+    # n = x - 91
+    # K = 19000 (add to first summation)
+    #
+    # 1: 1000n 
+    #
+    # 2: 500n^2 + 500n + 19000 
+    #   with sub: (500/3)(x - 91)(x^2 - 179x + 8124)
+    #
+    # Then add 564500 and simplify:
+    # 3: (1/3)(500n^3 + 1500n + 5800n + 1693500)
+    #
     # 500/3 ( (x - 90)^3 + 113(x - 90) + 3273)
+    5: CurriedFunction(_cubicsimp, 500, 3, 1, 113, -90, 3273),
 
+    # 631500 + 5000(x - 89)
+    # 500(5x^2 - 885x + 40273)
+    # NOTE: only for 1 value
+    6: CurriedFunction(_constant, 661500),
+
+    # 661500 + (double summation of diff formula using sub)
+    # n = x - 95
+    # K = 30000 (add to first summation)
+    #
+    # 1: 10000n 
+    # 2: 5000n^2 + 5000n + 30000 
+    #   with sub: (5000/3)(x - 95)(x^2 - 187x + 8760)
+    #
+    # then add 661500 and simplify
+    # 3: (1/3)(5000n^3 + 15000n^2 + 100000n + 1984500)
+    #
+    # (500/3)(10(x - 94)^3 + 170(x - 94) + 3789
+    7: CurriedFunction(_cubicsimp, 500, 3, 10, 170, -94, 3789),
+
+    # 851500 + 500(117x - 11286)
+    # 250(117x^2 - 22455x + 1080328)
+    # 250( 9x(13x - 2495) + 1080328)
+    # NOTE: only for 1 value
+    8: CurriedFunction(_constant, 1000000),
 
     
 }
 
 c_gl = {
-    # (5 + sqrt( 25 + 2y )) / 10
-    0: CurriedFunction(_quadform, 2, 25, 5, 10),
+    # (5 + sqrt( 2y + 25 )) / 10
+    0: CurriedFunction(_quadform, 5, 1, 2, 25, 10),
 
     # (255 + sqrt( y - 62475)) / 10
-    1: CurriedFunction(_quadform, 1, -62475, 255, 10),
+    1: CurriedFunction(_quadform, 255, 1, 1, -62475, 10),
 
     # (1115 + sqrt( 6y - 619775)) / 30
-    2: CurriedFunction(_quadform, 6, -619775, 1115, 30),
+    2: CurriedFunction(_quadform, 1115, 1, 6,  -619775, 30),
 
     # (455 + sqrt( y/2 - 72475)) / 10
-    3: CurriedFunction(_quadform, 1/2.0, -72475, 455, 10),
+    # (910 + sqrt( 2 (y - 144950) )) / 20
+    3: CurriedFunction(_quadform, 910, 2, 1, -144950, 20),
 
     # (525 + sqrt( 2y/5 - 77575)) / 10
-    4: CurriedFunction(_quadform, 2/5.0, -77575, 525, 10),
+    # (2625 + sqrt( 5 (2y - 387875) )) / 50
+    4: CurriedFunction(_quadform, 2625, 5, 2, -387875, 50),
 }
