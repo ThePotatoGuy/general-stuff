@@ -30,6 +30,9 @@ def lvl_state(lvl):
         return 4
     return 5
 
+def _cube(value):
+    return value ** CUBE
+
 
 def _quadform(radmod, amul, lmul, lmod, xpdiv, xp):
     return (radmod + math.sqrt(abs(amul * (lmod + (lmul * xp))))) / xpdiv
@@ -40,8 +43,8 @@ def _cubeform_s(ymul, ydiv, xmod, aamul, amul, amod, pamul, z1mul, z1div,
     a_var = ((ymul * xp) / ydiv) + xmod
     z_var = math.sqrt(abs(aamul * ( (amul * a_var * a_var) + amod))) + (pamul * a_var)
     return (
-        (z1mul / z1div) * ( ( (z_var * z1cmul) / z1cdiv) ** CUBE)
-        + (z2mul / z2div) * ( ( z2cmul / (z_var * z2cdiv)) ** CUBE)
+        (z1mul / z1div) * _cube( (z_var * z1cmul) / z1cdiv )
+        + (z2mul / z2div) * _cube( z2cmul / (z_var * z2cdiv) )
         + kcon
     )
 
