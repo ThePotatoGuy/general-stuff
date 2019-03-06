@@ -17,29 +17,23 @@ class CurriedFunction(object):
         return self.func(*arg_list)
 
 
-def lvl_state(lvl):
-    if lvl <= 51:
-        return 0
-    elif lvl <= 61:
-        return 1
-    elif lvl <= 71:
-        return 2
-    elif lvl <= 81:
-        return 3
-    elif lvl <= 91:
-        return 4
-    return 5
-
 def _cube(value):
     return value ** CUBE
 
+def _lineform(ymul, ymod, ydiv, xp):
+    # (my + ymod) / ydiv
+    return ( (ymul * xp) + ymod ) / ydiv
+
 
 def _quadform(radmod, amul, lmul, lmod, xpdiv, xp):
+    # the negative Boy decided to go the RADical party and Be square, so 
+    # he got 4 Asian Chicks. The party was all over at 2 Am.
     return (radmod + math.sqrt(abs(amul * (lmod + (lmul * xp))))) / xpdiv
 
 
 def _cubeform_s(ymul, ydiv, xmod, aamul, amul, amod, pamul, z1mul, z1div, 
         z1cmul, z1cdiv, z2mul, z2div, z2cmul, z2cdiv, kcon, xp):
+    # complicated. 
     a_var = ((ymul * xp) / ydiv) + xmod
     z_var = math.sqrt(abs(aamul * ( (amul * a_var * a_var) + amod))) + (pamul * a_var)
     return (
@@ -62,6 +56,9 @@ def get_level(xp):
         + _get_level_piece(3, 3, 4, xp)
         + _get_level_piece(4, 4, 5, xp)
         + _get_level_piece(5, 5, 6, xp)
+        + _get_level_piece(6, 6, 7, xp)
+        + _get_level_piece(7, 7, 8, xp)
+        + _get_level_piece(8, 8, 9, xp)
     )
 
 
@@ -69,8 +66,8 @@ def _xp_diff_start(lvl):
     return (lvl * 100) - 100
 
 def _ymxb(amul, mmul, bmod, lmod, lvl):
+    # A( m(x + l) + b)
     return amul * ( (mmul * (lvl + lmod)) + bmod)
-#    return xp_diff(lmod) + (lmul * (lvl + lmod))
 
 def _constant(amt, lvl):
     # hard coded amount since some cases only have single value
@@ -101,15 +98,23 @@ def xp_diff(lvl):
 
 
 def _quad(amul, m2, m1, kcon, lvl):
+    # A(x^2 + x + K)
     return amul * ( (m2 * lvl * lvl) + (m1 * lvl) + kcon)
 
 def _quadfact(amul, m1, k1, m2, k2, lvl):
+    # A(x + k1)(x + k2)
     return amul * ( (m1 * lvl) + k1) * ( (m2 * lvl) + k2)
 
 def _quadfactK(amul, m1, k1, m2, k2, bigK, lvl):
+    # K + A(x + k1)(x + k2)
     return bigK + _quadfact(amul, m1, k1, m2, k2, lvl)
 
+def _quadfact_xf(amul, m1, m2, m2mod, kcon, lvl):
+    # A( x(x + m) + K)
+    return amul * ( (m1 * lvl) * ( (m2 * lvl) + m2mod ) + kcon )
+
 def _cubicsimp(amul, bmul, cxmul, lxmul, lmod, kcon, lvl):
+    # (A/B)( (x + m)^3 + b(x + m) + K)
     amt = lvl + lmod
     return (amul * ( (cxmul * amt * amt * amt) + (lxmul * amt) + kcon ) ) / bmul
 
@@ -137,7 +142,6 @@ def get_xp(lvl):
 
     )
 
-#    return curried_get_exp.get(lvl_state(lvl), bad_result)(lvl)
 
 
 def bad_result(lvl):
@@ -174,6 +178,9 @@ c_hfx = {
     4: CurriedFunction(unitstep, 397000),
     5: CurriedFunction(unitstep, 564500),
     6: CurriedFunction(unitstep, 631500),
+    7: CurriedFunction(unitstep, 661500),
+    8: CurriedFunction(unitstep, 851500),
+    9: CurriedFunction(unitstep, 1000000),
 }
 
 
@@ -234,22 +241,26 @@ c_gx = {
     # previous + 200(x- 26)
     # previous = 127500
     # 100(x^2 - 51x + 1275)
-    1: CurriedFunction(_quad, 100, 1, -51, 1275),
+    # 100( x(x - 51) + 1275)
+    1: CurriedFunction(_quadfact_xf, 100, 1, 1, -51, 1275),
 
     # previous + 100 (3x - 133)
     # previous = 188500
     # 50(3x^2 - 223x + 6210)
-    2: CurriedFunction(_quad, 50, 3, -223, 6210),
+    # 50( x(3x - 223) + 6210)
+    2: CurriedFunction(_quadfact_xf, 50, 1, 3, -223, 6210),
 
     # previous + 400 (x - 46)
     # previous = 275000
     # 200(x^2 - 91x + 2795)
-    3: CurriedFunction(_quad, 200, 1, -91, 2795),
+    # 200( x(x - 91) + 2795)
+    3: CurriedFunction(_quadfact_xf, 200, 1, 1, -91, 2795),
 
     # previous + 500 (x - 53)
     # previous = 397000
     # 250(x^2 - 105x + 3532)
-    4: CurriedFunction(_quad, 250, 1, -105, 3532),
+    # 250( x(x - 105) + 3532)
+    4: CurriedFunction(_quadfact_xf, 250, 1, 1 -105, 3532),
 
     # 564500 + (double summation of diff formula using substitution)
     # NOTE: we are starting with the growth of diff instead of diff itself,
@@ -270,8 +281,13 @@ c_gx = {
     # 500/3 ( (x - 90)^3 + 113(x - 90) + 3273)
     5: CurriedFunction(_cubicsimp, 500, 3, 1, 113, -90, 3273),
 
+    # NOTE: from deriviation:
     # 631500 + 5000(x - 89)
-    # 500(5x^2 - 885x + 40273)
+    # 500(5x^2 - 84x - 35021)
+    # NOTE: since we only have 1 constant here, we should get a linear function
+    #   for this to make the next step way easier
+    #   30000n + 631500
+    #   1500(20x - 1459)
     # NOTE: only for 1 value
     6: CurriedFunction(_constant, 661500),
 
@@ -289,9 +305,14 @@ c_gx = {
     # (500/3)(10(x - 94)^3 + 170(x - 94) + 3789
     7: CurriedFunction(_cubicsimp, 500, 3, 10, 170, -94, 3789),
 
+    # NOTE: from derivation
     # 851500 + 500(117x - 11286)
     # 250(117x^2 - 22455x + 1080328)
     # 250( 9x(13x - 2495) + 1080328)
+    # NOTE: since we only have 1 constant here, we should get a linear func
+    #   for this to make the next step way easier
+    #   148500n + 851500
+    #   500(297x - 27403)
     # NOTE: only for 1 value
     8: CurriedFunction(_constant, 1000000),
 
@@ -341,9 +362,25 @@ c_gl = {
         1, 18, -113, 1, 2, 3, 90
     ),
 
-    # test
+    # NOTE: using derived formula
+    # (420 + sqrt( x + 17686900)) /50
+    # NOTE: using simple linear from before
+    #   (y + 2188500) / 30000
+    6: CurriedFunction(_lineform, 1, 2188500, 30000.0),
 
     # NOTE: this is a cubic root
+    # x = (3y) / 500
+    # a = x - 3789
+    # z = sqrt(3 * (27a^2 + 1965200)) + 9a
+    # (z/180)^(1/3) - 17 ( 20 / (3z) )^(1/3) + 94
+    7: CurriedFunction(_cubeform_s, 3, 500.0, -3789, 3, 27, 1965200, 9, 1, 1,
+        1, 180, -17, 1, 20, 3, 94
+    ),
 
-    # last
+    # NOTE: using derived formula
+    # (187125 + sqrt(130y - 94894375)) / 1950
+    # (187125 + sqrt(5 (26y - 18 978 875)) / 1950
+    # NOTE: using simple linear form
+    #   (y + 13701500) / 148500
+    8: CurriedFunction(_lineform, 1, 13701500, 148500.0),
 }
