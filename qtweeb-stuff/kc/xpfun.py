@@ -17,8 +17,55 @@ class CurriedFunction(object):
         return self.func(*arg_list)
 
 
+def get_level(xp):
+    """
+    Gets the current level based on total XP gained.
+
+    The returned level includes a fractional (decimal) component that 
+    roughly acts as percentage of xp until next level. This is **rough** 
+    because some of the functions that calculate this are **non-linear**.
+
+    IN:
+        xp - user experience points
+
+    RETURNS: level the user must have if they have the given XP.
+    """
+    return _applyfunc99(c_gl, xp, c_hfx)
+
+
+def get_xp(lvl):
+    """
+    Gets the total amount of XP needed to reach a certain level. This means
+    how much the user would have cumulative to reach a level, NOT how much
+    more they need.
+
+    IN:
+        lvl - user level
+
+    RETURNS: total xp the user must have to reach the given level.
+    """
+    return _applyfunc99(c_gx, lvl, c_hf)
+
+
+def xp_diff(lvl):
+    """
+    Gets the amount of xp needed to reach the next level from the level.
+    I.e: if this returns 5000 for level 51, then you need 5000 xp from
+        level 51 to reach level 52.
+
+    IN:
+        lvl - user level
+
+    RETURNS: xp needed to reach the next level (lvl + 1)
+    """
+    return _applyfunc99(c_xd, lvl, c_hf)
+
+
+### Function helpers
+
 def _cube(value):
     return value ** CUBE
+
 
 def _lineform(ymul, ymod, ydiv, xp):
     # (my + ymod) / ydiv
@@ -43,113 +90,89 @@ def _cubeform_s(ymul, ydiv, xmod, aamul, amul, amod, pamul, z1mul, z1div,
     )
 
 
-def _get_level_piece(piece, start, end, xp):
-    amt = c_gl[piece](xp)
-    return (amt * c_hfx[start](xp)) - (amt * c_hfx[end](xp))
-
-
-def get_level(xp):
-    return (
-        _get_level_piece(0, 0, 1, xp)
-        + _get_level_piece(1, 1, 2, xp)
-        + _get_level_piece(2, 2, 3, xp)
-        + _get_level_piece(3, 3, 4, xp)
-        + _get_level_piece(4, 4, 5, xp)
-        + _get_level_piece(5, 5, 6, xp)
-        + _get_level_piece(6, 6, 7, xp)
-        + _get_level_piece(7, 7, 8, xp)
-        + _get_level_piece(8, 8, 9, xp)
-    )
-
-
-def _xp_diff_start(lvl):
-    return (lvl * 100) - 100
-
 def _ymxb(amul, mmul, bmod, lmod, lvl):
     # A( m(x + l) + b)
     return amul * ( (mmul * (lvl + lmod)) + bmod)
 
+
 def _constant(amt, lvl):
     # hard coded amount since some cases only have single value
     return amt
-
-def _xp_diff_piece(piece, start, end, lvl):
-    amt = c_xd[piece](lvl)
-    return (amt * c_hf[start](lvl)) - (amt * c_hf[end](lvl))
-
-
-def xp_diff(lvl):
-    """
-    Xp diff calcs:
-    First 50 levels follows formula: 100x - 100
-    From there to level 91, add a 100x - 100 term every 10 levels.
-    """
-    return (
-        _xp_diff_piece(0, 0, 1, lvl)
-        + _xp_diff_piece(1, 1, 2, lvl)
-        + _xp_diff_piece(2, 2, 3, lvl)
-        + _xp_diff_piece(3, 3, 4, lvl)
-        + _xp_diff_piece(4, 4, 5, lvl)
-        + _xp_diff_piece(5, 5, 6, lvl)
-        + _xp_diff_piece(6, 6, 7, lvl)
-        + _xp_diff_piece(7, 7, 8, lvl)
-        + _xp_diff_piece(8, 8, 9, lvl)
-    )
 
 
 def _quad(amul, m2, m1, kcon, lvl):
     # A(x^2 + x + K)
     return amul * ( (m2 * lvl * lvl) + (m1 * lvl) + kcon)
 
+
 def _quadfact(amul, m1, k1, m2, k2, lvl):
     # A(x + k1)(x + k2)
     return amul * ( (m1 * lvl) + k1) * ( (m2 * lvl) + k2)
+
 
 def _quadfactK(amul, m1, k1, m2, k2, bigK, lvl):
     # K + A(x + k1)(x + k2)
     return bigK + _quadfact(amul, m1, k1, m2, k2, lvl)
 
+
 def _quadfact_xf(amul, m1, m2, m2mod, kcon, lvl):
     # A( x(x + m) + K)
     return amul * ( (m1 * lvl) * ( (m2 * lvl) + m2mod ) + kcon )
+
 
 def _cubicsimp(amul, bmul, cxmul, lxmul, lmod, kcon, lvl):
     # (A/B)( (x + m)^3 + b(x + m) + K)
     amt = lvl + lmod
     return (amul * ( (cxmul * amt * amt * amt) + (lxmul * amt) + kcon ) ) / bmul
 
-def _get_xp_help(amul, mmul, bmod, lmod, prev, lvl):
-    return (amul * lvl * ( (mmul * (lvl + lmod)) + bmod)) + get_xp
-#    return amul * lvl * ( (mmul * (lvl + lmod)) + bmod)
-
-
-def _get_xp_piece(piece, start, end, lvl):
-    amt = c_gx[piece](lvl)
-    return (amt * c_hf[start](lvl)) - (amt * c_hf[end](lvl))
-
-
-def get_xp(lvl):
-    return (
-        _get_xp_piece(0, 0, 1, lvl)
-        + _get_xp_piece(1, 1, 2, lvl)
-        + _get_xp_piece(2, 2, 3, lvl)
-        + _get_xp_piece(3, 3, 4, lvl)
-        + _get_xp_piece(4, 4, 5, lvl)
-        + _get_xp_piece(5, 5, 6, lvl)
-        + _get_xp_piece(6, 6, 7, lvl)
-        + _get_xp_piece(7, 7, 8, lvl)
-        + _get_xp_piece(8, 8, 9, lvl)
-
-    )
-
-
-
-def bad_result(lvl):
-    return -1
-
 
 def unitstep(lmod, lvl):
     return int((lvl - lmod) > 0)
+
+
+def _unitstep_builder(db, piece, xvar, usdb):
+    """
+    Implements unit step function logic.
+    AKA: calculate the vlaue, then subtract it by itself if its unitstep value
+        says it should not exist
+
+    IN:
+        db - curried function database to use
+        piece - piece to calculate
+        xvar - xvar the var to pass into all functions
+        usdb - unitstep databse to use
+        
+    RETURNS a positive value if xvar exists for this piece, 0 otherwise.
+    """
+    amt = db[piece](xvar)
+    return (amt * usdb[piece](xvar)) - (amt * usdb[piece+1](xvar))
+
+
+def _applyfunc99(db, xvar, usdb):
+    """
+    Runs unitstep builder for levels 99 and lower
+
+    NOTE: not using looops so we avoid branching
+    This is fine since we are never expecting this to change length.
+
+    IN:
+        db - curried function database to use
+        xvar - xvar to pass into all functions
+        usdb - unitstep database to use
+
+    RETURNS: a result of running the unitstep functions
+    """
+    return (
+        _unitstep_builder(db, 0, xvar, usdb)
+        + _unitstep_builder(db, 1, xvar, usdb)
+        + _unitstep_builder(db, 2, xvar, usdb)
+        + _unitstep_builder(db, 3, xvar, usdb)
+        + _unitstep_builder(db, 4, xvar, usdb)
+        + _unitstep_builder(db, 5, xvar, usdb)
+        + _unitstep_builder(db, 6, xvar, usdb)
+        + _unitstep_builder(db, 7, xvar, usdb)
+        + _unitstep_builder(db, 8, xvar, usdb)
+    )
 
 
 ### setup curried functions
@@ -260,7 +283,7 @@ c_gx = {
     # previous = 397000
     # 250(x^2 - 105x + 3532)
     # 250( x(x - 105) + 3532)
-    4: CurriedFunction(_quadfact_xf, 250, 1, 1 -105, 3532),
+    4: CurriedFunction(_quadfact_xf, 250, 1, 1, -105, 3532),
 
     # 564500 + (double summation of diff formula using substitution)
     # NOTE: we are starting with the growth of diff instead of diff itself,
